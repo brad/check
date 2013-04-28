@@ -8,7 +8,14 @@ import fnmatch
 import functools
 import contextlib
 import subprocess
-from cStringIO import StringIO
+
+try:
+    from io import StringIO
+except ImportError:
+   try:
+       from cStringIO import StringIO
+   except ImportError:
+       from StringIO import StringIO
 
 from path import path
 
@@ -70,9 +77,9 @@ def which_vcs():
 
 def interesting_files(vcs):
     """Return a list of added or modified files."""
-    out = call([vcs, 'status']).splitlines()
+    out = [o.decode() for o in call([vcs, 'status']).splitlines()]
     r = re.compile(VCS[vcs])
-    return [m[0] for m in filter(None, map(r.findall, out))]
+    return [m[0].encode() for m in filter(None, map(r.findall, out))]
 
 
 def call(seq):
@@ -109,7 +116,7 @@ def jshint(files):
     try:
         return call(['jshint'] + files)
     except OSError:
-        print 'jshint not installed for js checking'
+        print('jshint not installed for js checking')
         return ''
 
 
@@ -128,12 +135,12 @@ def _main():
                     if not any(fnmatch.fnmatch(f, glob) for glob in IGNORE):
                         files.append(f)
 
-    files = filter(os.path.isfile, set(files))
+    files = [f.decode() for f in filter(os.path.isfile, set(files))]
     exitcode = 0
     for checker in checkers:
         ret = checker(files)
         if ret:
-            print ret
+            print(ret.decode())
             exitcode = 1
 
     return exitcode
